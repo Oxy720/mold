@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORGE</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #1a1a1a;
+    --surface: #222222;
+    --border: #2e2e2e;
+    --text: #d4d4d4;
+    --muted: #555;
+    --accent: #4a9eff;
+    --success: #3dba6f;
+    --warning: #e8a830;
+    --danger: #e05555;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 12px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+.header-title {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .btn-icon {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 3px 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+  }
+
+  .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+
+  .filterbar {
+    display: flex;
+    gap: 1px;
+    padding: 8px 14px 0;
+    flex-shrink: 0;
+  }
+
+  .filter-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 10px;
+    cursor: pointer;
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+  }
+
+  .filter-btn:hover { color: var(--text); }
+  .filter-btn.active { background: var(--surface); color: var(--text); }
+
+  .searchbar {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .search-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 5px 10px;
+    border-radius: 2px;
+    outline: none;
+    letter-spacing: 0.04em;
+    transition: border-color 0.15s;
+  }
+
+  .search-input::placeholder { color: var(--muted); }
+  .search-input:focus { border-color: var(--accent); }
+
+  .plugin-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 0;
+  }
+
+  .plugin-list::-webkit-scrollbar { width: 3px; }
+  .plugin-list::-webkit-scrollbar-track { background: transparent; }
+  .plugin-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .plugin-item {
+    border-bottom: 1px solid var(--border);
+  }
+  .plugin-item:last-child { border-bottom: none; }
+
+  .plugin-row {
+    display: flex;
+    align-items: center;
+    padding: 9px 14px;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.1s;
+    user-select: none;
+  }
+
+  .plugin-row:hover { background: var(--surface); }
+
+  .plugin-info { flex: 1; min-width: 0; }
+
+  .plugin-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .plugin-desc {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .plugin-version {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    flex-shrink: 0;
+    width: 36px;
+    text-align: right;
+  }
+
+  .chevron {
+    color: var(--muted);
+    font-size: 9px;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+    width: 10px;
+    text-align: center;
+  }
+  .plugin-item.open .chevron { transform: rotate(90deg); }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-dot.installed { background: var(--success); }
+  .status-dot.update { background: var(--warning); }
+  .status-dot.none { background: var(--border); }
+
+  .btn-action {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+    border: 1px solid;
+    flex-shrink: 0;
+    letter-spacing: 0.04em;
+    transition: all 0.15s;
+    min-width: 62px;
+    text-align: center;
+  }
+
+  .btn-action.install { border-color: var(--accent); color: var(--accent); background: transparent; }
+  .btn-action.install:hover { background: var(--accent); color: #fff; }
+  .btn-action.update { border-color: var(--warning); color: var(--warning); background: transparent; }
+  .btn-action.update:hover { background: var(--warning); color: #111; }
+  .btn-action.installed { border-color: var(--border); color: var(--muted); background: transparent; cursor: default; }
+  .btn-action.installing {
+    border-color: var(--border); color: var(--muted); background: transparent;
+    cursor: wait; position: relative; overflow: hidden;
+  }
+  .btn-action.installing::after {
+    content: ''; position: absolute; left: -100%; top: 0;
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, transparent, rgba(74,158,255,0.15), transparent);
+    animation: shimmer 1s infinite;
+  }
+
+  @keyframes shimmer { to { left: 100%; } }
+
+  .plugin-dropdown {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+    background: #1e1e1e;
+  }
+
+  .plugin-item.open .plugin-dropdown { max-height: 300px; }
+
+  .dropdown-inner {
+    padding: 10px 14px 12px 30px;
+    border-top: 1px solid var(--border);
+  }
+
+  .dropdown-full-desc {
+    font-size: 11px;
+    color: #aaa;
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+
+  .features-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .features-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .feature-item {
+    font-size: 11px;
+    color: #999;
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+  }
+
+  .feature-item::before {
+    content: '—';
+    color: var(--muted);
+    flex-shrink: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    margin-top: 1px;
+  }
+
+  .tags-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 10px;
+  }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 2px;
+    letter-spacing: 0.04em;
+  }
+
+  .footer {
+    padding: 7px 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .footer-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .footer-status span { color: var(--text); }
+
+  .btn-refresh {
+    background: none; border: none; color: var(--muted);
+    font-family: var(--mono); font-size: 10px; cursor: pointer;
+    padding: 2px 0; transition: color 0.15s; letter-spacing: 0.04em;
+  }
+
+  .btn-refresh:hover { color: var(--accent); }
+
+  .empty {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; color: var(--muted); font-family: var(--mono); font-size: 11px;
+  }
+
+  .toast {
+    position: fixed; bottom: 36px; left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--mono); font-size: 10px;
+    padding: 6px 14px; border-radius: 2px; opacity: 0;
+    transition: all 0.2s; pointer-events: none; white-space: nowrap; z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--success); color: var(--success); }
+  .toast.error { border-color: var(--danger); color: var(--danger); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-title">FORGE</span>
+  <button class="btn-icon" onclick="checkUpdates()">check updates</button>
+</div>
+
+<div class="filterbar">
+  <button class="filter-btn active" onclick="setFilter('all', this)">all</button>
+  <button class="filter-btn" onclick="setFilter('installed', this)">installed</button>
+  <button class="filter-btn" onclick="setFilter('available', this)">available</button>
+  <button class="filter-btn" onclick="setFilter('update', this)">updates</button>
+</div>
+
+<div class="searchbar">
+  <input class="search-input" type="text" id="searchInput" placeholder="search plugins..." oninput="onSearch(this.value)" />
+</div>
+
+<div class="plugin-list" id="pluginList"></div>
+
+<div class="footer">
+  <span class="footer-status">
+    <span id="installedCount">0</span> installed &nbsp;·&nbsp; <span id="totalCount">0</span> total
+  </span>
+  <button class="btn-refresh" onclick="loadPlugins()">↻ refresh</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── CEP Node bridge ──────────────────────────────────────────────
+  let installer = null;
+  try {
+    const cepNode = window.cep_node || (typeof require !== 'undefined' ? { require } : null);
+    if (cepNode) {
+      installer = cepNode.require('./js/install.js');
+    }
+  } catch(e) {
+    console.warn('Running outside CEP — install.js not loaded:', e);
+  }
+
+  // ── Registry ─────────────────────────────────────────────────────
+  const REGISTRY_URL = 'https://raw.githubusercontent.com/Oxy720/plugins/main/registry.json';
+
+  const mockPlugins = [
+    {
+      id: 'fetchflow',
+      name: 'FetchFlow',
+      shortDesc: 'YouTube downloader panel',
+      fullDesc: 'FetchFlow lets you download YouTube videos and audio directly inside Premiere Pro. Set download folder routing automatically relative to your project file, manage a queue, and optionally auto-import downloads into your project bins.',
+      features: ['Resolution capping', 'MP3 / audio-only mode', 'Auto-import into Premiere bins', 'Mode A/B folder routing', 'Download queue'],
+      tags: ['youtube', 'download', 'audio', 'import'],
+      version: '1.2.0',
+      repoPath: 'plugins/fetchflow'
+    },
+    {
+      id: 'batch-leveler',
+      name: 'Batch Leveler',
+      shortDesc: 'Dialogue gain correction via FFmpeg',
+      fullDesc: 'Analyzes selected dialogue clips using FFmpeg scoped to their in/out points, calculates the required gain correction, and applies it automatically. Also stamps a Dynamics preset for consistent loudness across your timeline.',
+      features: ['FFmpeg-based loudness analysis', 'Auto gain correction via setAudioGain()', 'Dynamics preset stamping', 'Batch process multiple clips'],
+      tags: ['audio', 'gain', 'loudness', 'ffmpeg', 'dialogue'],
+      version: '1.0.3',
+      repoPath: 'plugins/batch-leveler'
+    },
+    {
+      id: 'autocut',
+      name: 'AutoCut',
+      shortDesc: 'Silence detection and cut tool',
+      fullDesc: 'Detects silence in selected clips and automatically cuts or ripple-deletes silent sections. Configurable threshold and minimum silence duration. Great for speeding up interview and podcast editing.',
+      features: ['Configurable silence threshold', 'Ripple delete silent gaps', 'Preview before cutting', 'Works on multiple clips'],
+      tags: ['cut', 'silence', 'ripple', 'interview', 'podcast', 'auto'],
+      version: '0.9.1',
+      repoPath: 'plugins/autocut'
+    },
+    {
+      id: 'subtitle-gen',
+      name: 'SubtitleGen',
+      shortDesc: 'Auto subtitle generator',
+      fullDesc: 'Generates subtitles from your timeline audio using a local Whisper model. Outputs as Premiere captions or SRT file. No internet connection required after initial model download.',
+      features: ['Local Whisper model', 'Exports as SRT or Premiere captions', 'Language detection', 'Word-level timestamps'],
+      tags: ['subtitles', 'captions', 'whisper', 'srt', 'transcription'],
+      version: '1.1.0',
+      repoPath: 'plugins/subtitle-gen'
+    },
+  ];
+
+  // ── State ─────────────────────────────────────────────────────────
+  let plugins = [];
+  let currentFilter = 'all';
+  let searchQuery = '';
+  let openId = null;
+
+  // ── Status helpers ────────────────────────────────────────────────
+  function getInstalledVersion(id) {
+    if (installer) return installer.getInstalledVersion(id);
+    return null;
+  }
+
+  function isInstalled(id) {
+    if (installer) return installer.isInstalled(id);
+    // fallback for dev: check localStorage flag
+    return localStorage.getItem('installed_' + id) === 'true';
+  }
+
+  function getStatus(p) {
+    if (!isInstalled(p.id)) return 'none';
+    const iv = getInstalledVersion(p.id);
+    if (iv && iv !== p.version) return 'update';
+    return 'installed';
+  }
+
+  // ── Filter + Search ───────────────────────────────────────────────
+  function matchesSearch(p, q) {
+    if (!q) return true;
+    const lower = q.toLowerCase();
+    return (
+      p.name.toLowerCase().includes(lower) ||
+      p.shortDesc.toLowerCase().includes(lower) ||
+      (p.tags || []).some(t => t.toLowerCase().includes(lower))
+    );
+  }
+
+  function getFiltered() {
+    return plugins.filter(p => {
+      const status = getStatus(p);
+      let passFilter = true;
+      if (currentFilter === 'installed') passFilter = status === 'installed';
+      else if (currentFilter === 'available') passFilter = status === 'none';
+      else if (currentFilter === 'update') passFilter = status === 'update';
+      return passFilter && matchesSearch(p, searchQuery);
+    });
+  }
+
+  // ── Render ────────────────────────────────────────────────────────
+  function renderPlugins() {
+    const list = document.getElementById('pluginList');
+    const filtered = getFiltered();
+
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="empty">nothing here</div>';
+      updateCounts();
+      return;
+    }
+
+    list.innerHTML = filtered.map(p => {
+      const status = getStatus(p);
+      let btnClass = 'install', btnLabel = 'install';
+      if (status === 'installed') { btnClass = 'installed'; btnLabel = 'installed'; }
+      else if (status === 'update') { btnClass = 'update'; btnLabel = 'update'; }
+
+      const btnOnclick = (status === 'installed') ? '' : `onclick="event.stopPropagation(); handleAction('${p.id}')"`;
+      const isOpen = openId === p.id;
+
+      const featuresHtml = p.features.map(f => `<div class="feature-item">${f}</div>`).join('');
+      const tagsHtml = (p.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+
+      return `
+        <div class="plugin-item ${isOpen ? 'open' : ''}" id="item-${p.id}">
+          <div class="plugin-row" onclick="toggleDropdown('${p.id}')">
+            <div class="status-dot ${status}"></div>
+            <div class="plugin-info">
+              <div class="plugin-name">${p.name}</div>
+              <div class="plugin-desc">${p.shortDesc}</div>
+            </div>
+            <div class="plugin-version">v${p.version}</div>
+            <button class="btn-action ${btnClass}" ${btnOnclick} id="btn-${p.id}">${btnLabel}</button>
+            <span class="chevron">›</span>
+          </div>
+          <div class="plugin-dropdown">
+            <div class="dropdown-inner">
+              <div class="dropdown-full-desc">${p.fullDesc}</div>
+              <div class="features-label">Features</div>
+              <div class="features-list">${featuresHtml}</div>
+              ${tagsHtml ? `<div class="tags-row">${tagsHtml}</div>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    updateCounts();
+  }
+
+  function updateCounts() {
+    document.getElementById('installedCount').textContent = plugins.filter(p => isInstalled(p.id)).length;
+    document.getElementById('totalCount').textContent = plugins.length;
+  }
+
+  function toggleDropdown(id) {
+    openId = (openId === id) ? null : id;
+    renderPlugins();
+  }
+
+  // ── Install / Update ──────────────────────────────────────────────
+  async function handleAction(id) {
+    const plugin = plugins.find(p => p.id === id);
+    if (!plugin) return;
+
+    const btn = document.getElementById(`btn-${id}`);
+    btn.className = 'btn-action installing';
+    btn.textContent = '···';
+    btn.onclick = null;
+
+    try {
+      if (installer) {
+        await installer.installPlugin(plugin, (msg) => {
+          btn.title = msg;
+        });
+      } else {
+        // dev fallback
+        await new Promise(r => setTimeout(r, 1800));
+        localStorage.setItem('installed_' + id, 'true');
+      }
+      renderPlugins();
+      showToast(`${plugin.name} installed — restart Premiere`, 'success');
+    } catch (err) {
+      renderPlugins();
+      showToast(`failed to install ${plugin.name}`, 'error');
+      console.error(err);
+    }
+  }
+
+  // ── Load from registry ────────────────────────────────────────────
+  async function loadPlugins() {
+    try {
+      const res = await fetch(REGISTRY_URL);
+      if (!res.ok) throw new Error('registry fetch failed');
+      plugins = await res.json();
+    } catch(e) {
+      plugins = mockPlugins;
+    }
+    openId = null;
+    renderPlugins();
+  }
+
+  function checkUpdates() {
+    loadPlugins();
+    showToast('checking for updates···');
+  }
+
+  // ── Filter / Search events ────────────────────────────────────────
+  function setFilter(filter, el) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    renderPlugins();
+  }
+
+  function onSearch(val) {
+    searchQuery = val.trim();
+    renderPlugins();
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────────
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (type ? ' ' + type : '');
+    setTimeout(() => t.className = 'toast', 2500);
+  }
+
+  loadPlugins();
+</script>
+</body>
+</html>
