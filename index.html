@@ -2,601 +2,574 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FORGE</title>
+<title>MOLD</title>
+
+<script>
+var SystemPath = {
+  APPLICATION:'application',EXTENSION:'extension',
+  SYSTEM:'system',USER_DATA:'userData',HOST_APPLICATION:'hostApplication'
+};
+function CSInterface(){
+  var _cep=window.__adobe_cep__;
+  if(!_cep) throw new Error('__adobe_cep__ not found.');
+  this.getSystemPath    =function(p){return _cep.getSystemPath(p);};
+  this.evalScript       =function(s,cb){_cep.evalScript(s,cb||function(){});};
+  this.getHostEnvironment=function(){return JSON.parse(_cep.getHostEnvironment());};
+}
+</script>
+
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 
-  :root {
-    --bg: #1a1a1a;
-    --surface: #222222;
-    --border: #2e2e2e;
-    --text: #d4d4d4;
-    --muted: #555;
-    --accent: #4a9eff;
-    --success: #3dba6f;
-    --warning: #e8a830;
-    --danger: #e05555;
-    --mono: 'IBM Plex Mono', monospace;
-    --sans: 'IBM Plex Sans', sans-serif;
-  }
+:root{
+  --bg:#1a1a1a; --surface:#232323; --border:#2e2e2e; --border-focus:#555;
+  --text:#d4d4d4; --dim:#555; --text-dim:#666;
+  --accent:#e8b84b; --accent-dim:rgba(232,184,75,0.10); --accent-hover:rgba(232,184,75,0.18);
+  --danger:#c0392b; --success:#27ae60;
+  --radius:6px; --r-sm:3px;
+}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    font-size: 12px;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
+html,body{
+  width:100%;height:100%;
+  background:var(--bg);
+  overflow:hidden;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+}
 
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
+/* ══════════════════════════════════════════
+   TOOLBAR  — pure CSS sizing, no JS sizing
+   Buttons are square: width = panel width - padding.
+   height uses aspect-ratio 1/1 so they auto-square.
+   Max-width/height caps at 44px so they don't bloat.
+   ══════════════════════════════════════════ */
+/* ══ TOOLBAR — portrait strip ══ */
+#toolbar{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;
+  padding:4px 3px;
+  gap:4px;
+  overflow:hidden;
+}
 
-.header-title {
-    font-family: var(--mono);
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
+/* ›› expand button — full width, small height */
+#expand-btn{
+  width:100%;height:16px;
+  flex-shrink:0;
+  background:none;border:none;
+  color:var(--dim);font-size:8px;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  letter-spacing:-1px;line-height:1;
+  transition:color .15s;border-radius:2px;
+}
+#expand-btn:hover{color:var(--text);}
 
-  .btn-icon {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    padding: 3px 8px;
-    font-family: var(--mono);
-    font-size: 10px;
-    cursor: pointer;
-    border-radius: 2px;
-    transition: all 0.15s;
-    letter-spacing: 0.05em;
-  }
+.divider-h{
+  width:80%;height:1px;
+  background:var(--border);flex-shrink:0;
+}
 
-  .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+/* button container — vertical stack */
+#tpl-btn-container{
+  display:flex;flex-direction:column;
+  align-items:center;
+  gap:4px;width:100%;flex-shrink:0;
+}
 
-  .filterbar {
-    display: flex;
-    gap: 1px;
-    padding: 8px 14px 0;
-    flex-shrink: 0;
-  }
+/* Square buttons — fixed 36px */
+.tpl-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:36px;
+  height:36px;
+  flex-shrink:0;
+  border-radius:var(--radius);border:none;
+  cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  font-weight:500;color:#fff;
+  position:relative;
+  transition:filter .12s,transform .1s;
+  user-select:none;
+}
+.tpl-btn:hover {filter:brightness(1.22);transform:scale(1.07);}
+.tpl-btn:active{filter:brightness(0.82);transform:scale(0.96);}
 
-  .filter-btn {
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 10px;
-    padding: 3px 10px;
-    cursor: pointer;
-    border-radius: 2px;
-    letter-spacing: 0.05em;
-    transition: all 0.15s;
-  }
+/* tooltip — pops to the right */
+.tpl-btn::after{
+  content:attr(data-name);
+  position:fixed;left:56px;
+  background:#111;border:1px solid var(--border);
+  color:var(--text);font-size:9px;
+  white-space:nowrap;padding:3px 7px;border-radius:3px;
+  pointer-events:none;opacity:0;transition:opacity .15s;z-index:500;
+}
+.tpl-btn:hover::after{opacity:1;}
 
-  .filter-btn:hover { color: var(--text); }
-  .filter-btn.active { background: var(--surface); color: var(--text); }
+#no-templates{
+  font-size:7px;color:#333;
+  text-align:center;line-height:1.8;
+  padding:4px 0;user-select:none;
+}
 
-  .searchbar {
-    padding: 8px 14px;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
 
-  .search-input {
-    width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 10px;
-    padding: 5px 10px;
-    border-radius: 2px;
-    outline: none;
-    letter-spacing: 0.04em;
-    transition: border-color 0.15s;
-  }
 
-  .search-input::placeholder { color: var(--muted); }
-  .search-input:focus { border-color: var(--accent); }
+/* status flash */
+#status-flash{
+  position:fixed;bottom:6px;left:50%;transform:translateX(-50%);
+  background:#111;border:1px solid var(--border);border-radius:3px;
+  padding:3px 8px;font-size:8px;letter-spacing:.06em;
+  color:var(--dim);white-space:nowrap;
+  pointer-events:none;opacity:0;transition:opacity .2s;z-index:700;
+}
+#status-flash.show    {opacity:1;}
+#status-flash.ok {color:var(--success);border-color:var(--success);}
+#status-flash.err{color:var(--danger); border-color:var(--danger);}
 
-  .plugin-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 6px 0;
-  }
+/* ══════════════════════════════════════════
+   MANAGE OVERLAY — slides over toolbar
+   ══════════════════════════════════════════ */
+#manage-overlay{
+  position:absolute;inset:0;
+  background:var(--bg);
+  display:none;
+  flex-direction:column;
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:11px;color:var(--text);
+  z-index:400;overflow:hidden;
+}
+#manage-overlay.open{display:flex;}
 
-  .plugin-list::-webkit-scrollbar { width: 3px; }
-  .plugin-list::-webkit-scrollbar-track { background: transparent; }
-  .plugin-list::-webkit-scrollbar-thumb { background: var(--border); }
+#mg-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 10px 6px;flex-shrink:0;
+}
+#mg-title{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9px;font-weight:500;
+  letter-spacing:.14em;color:var(--dim);
+  text-transform:uppercase;
+}
+#mg-close-btn{
+  background:none;border:none;color:var(--dim);
+  font-size:10px;cursor:pointer;padding:2px 4px;
+  letter-spacing:-1px;line-height:1;border-radius:2px;
+  transition:color .12s;
+}
+#mg-close-btn:hover{color:var(--text);background:rgba(255,255,255,.04);}
 
-  .plugin-item {
-    border-bottom: 1px solid var(--border);
-  }
-  .plugin-item:last-child { border-bottom: none; }
+.mg-divider{height:1px;background:var(--border);flex-shrink:0;}
 
-  .plugin-row {
-    display: flex;
-    align-items: center;
-    padding: 9px 14px;
-    gap: 10px;
-    cursor: pointer;
-    transition: background 0.1s;
-    user-select: none;
-  }
+#mg-tpl-list{
+  display:flex;flex-direction:column;gap:2px;
+  max-height:110px;overflow-y:auto;flex-shrink:0;
+  padding:4px 8px;
+}
+.tmpl-item{
+  display:flex;align-items:center;gap:7px;
+  padding:4px 7px;
+  border:1px solid transparent;border-radius:var(--r-sm);
+  cursor:pointer;transition:background .1s,border-color .1s;
+}
+.tmpl-item:hover{background:var(--surface);border-color:var(--border);}
+.tmpl-item.selected{background:var(--accent-dim);border-color:var(--accent);}
+.tmpl-swatch{width:11px;height:11px;border-radius:2px;flex-shrink:0;}
+.tmpl-item-name{
+  flex:1;font-size:10px;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.tmpl-item.selected .tmpl-item-name{color:var(--accent);}
+.tmpl-item-del{
+  background:none;border:none;color:#333;
+  font-size:13px;cursor:pointer;line-height:1;padding:0 2px;
+  transition:color .1s;flex-shrink:0;
+}
+.tmpl-item-del:hover{color:var(--danger);}
 
-  .plugin-row:hover { background: var(--surface); }
+#mg-editor{
+  flex:1;display:flex;flex-direction:column;gap:6px;
+  padding:8px 10px 0;min-height:0;overflow:hidden;
+}
+.field-row{display:flex;gap:5px;align-items:center;}
+.field-row input[type="text"]{flex:1;}
 
-  .plugin-info { flex: 1; min-width: 0; }
+input[type="text"],textarea{
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);font-family:'IBM Plex Sans',sans-serif;
+  font-size:11px;padding:5px 7px;border-radius:var(--r-sm);
+  outline:none;width:100%;transition:border-color .15s;
+}
+input[type="text"]:focus,textarea:focus{border-color:var(--border-focus);}
+input[type="text"]::placeholder,textarea::placeholder{color:#333;}
 
-  .plugin-name {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+textarea{
+  flex:1;resize:none;min-height:0;
+  font-family:'IBM Plex Mono',monospace;font-size:9px;line-height:1.9;
+}
 
-  .plugin-desc {
-    font-size: 10px;
-    color: var(--muted);
-    margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+#mg-label-input{
+  width:34px!important;flex-shrink:0;
+  text-align:center;
+  font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;
+  padding:4px 3px;
+}
 
-  .plugin-version {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--muted);
-    flex-shrink: 0;
-    width: 36px;
-    text-align: right;
-  }
+#mg-colour-row{
+  display:flex;gap:4px;align-items:center;flex-wrap:wrap;
+}
+.colour-swatch{
+  width:16px;height:16px;border-radius:3px;
+  cursor:pointer;border:2px solid transparent;
+  transition:border-color .12s,transform .1s;flex-shrink:0;
+}
+.colour-swatch:hover{transform:scale(1.18);}
+.colour-swatch.active{border-color:#fff;}
 
-  .chevron {
-    color: var(--muted);
-    font-size: 9px;
-    flex-shrink: 0;
-    transition: transform 0.2s;
-    width: 10px;
-    text-align: center;
-  }
-  .plugin-item.open .chevron { transform: rotate(90deg); }
+.mg-hint{
+  font-family:'IBM Plex Mono',monospace;font-size:8px;
+  color:#383838;letter-spacing:.04em;flex-shrink:0;
+}
 
-  .status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .status-dot.installed { background: var(--success); }
-  .status-dot.update { background: var(--warning); }
-  .status-dot.none { background: var(--border); }
+#mg-actions{display:flex;gap:5px;flex-shrink:0;padding:8px 10px 10px;}
+.act-btn{
+  flex:1;padding:7px 4px;background:none;
+  border:1px solid var(--border);color:var(--text-dim);
+  font-family:'IBM Plex Mono',monospace;font-size:8px;
+  letter-spacing:.1em;text-transform:uppercase;
+  border-radius:var(--r-sm);cursor:pointer;
+  transition:border-color .15s,color .15s,background .15s;
+}
+.act-btn:hover{border-color:var(--border-focus);color:var(--text);}
+.act-btn.primary{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+.act-btn.primary:hover{background:var(--accent-hover);}
 
-  .btn-action {
-    font-family: var(--mono);
-    font-size: 10px;
-    padding: 4px 10px;
-    border-radius: 2px;
-    cursor: pointer;
-    border: 1px solid;
-    flex-shrink: 0;
-    letter-spacing: 0.04em;
-    transition: all 0.15s;
-    min-width: 62px;
-    text-align: center;
-  }
-
-  .btn-action.install { border-color: var(--accent); color: var(--accent); background: transparent; }
-  .btn-action.install:hover { background: var(--accent); color: #fff; }
-  .btn-action.update { border-color: var(--warning); color: var(--warning); background: transparent; }
-  .btn-action.update:hover { background: var(--warning); color: #111; }
-  .btn-action.installed { border-color: var(--border); color: var(--muted); background: transparent; cursor: default; }
-  .btn-action.installing {
-    border-color: var(--border); color: var(--muted); background: transparent;
-    cursor: wait; position: relative; overflow: hidden;
-  }
-  .btn-action.installing::after {
-    content: ''; position: absolute; left: -100%; top: 0;
-    height: 100%; width: 100%;
-    background: linear-gradient(90deg, transparent, rgba(74,158,255,0.15), transparent);
-    animation: shimmer 1s infinite;
-  }
-
-  @keyframes shimmer { to { left: 100%; } }
-
-  .plugin-dropdown {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.25s ease;
-    background: #1e1e1e;
-  }
-
-  .plugin-item.open .plugin-dropdown { max-height: 300px; }
-
-  .dropdown-inner {
-    padding: 10px 14px 12px 30px;
-    border-top: 1px solid var(--border);
-  }
-
-  .dropdown-full-desc {
-    font-size: 11px;
-    color: #aaa;
-    line-height: 1.6;
-    margin-bottom: 10px;
-  }
-
-  .features-label {
-    font-family: var(--mono);
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-  }
-
-  .features-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .feature-item {
-    font-size: 11px;
-    color: #999;
-    display: flex;
-    align-items: flex-start;
-    gap: 7px;
-  }
-
-  .feature-item::before {
-    content: '—';
-    color: var(--muted);
-    flex-shrink: 0;
-    font-family: var(--mono);
-    font-size: 10px;
-    margin-top: 1px;
-  }
-
-  .tags-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 10px;
-  }
-
-  .tag {
-    font-family: var(--mono);
-    font-size: 9px;
-    color: var(--muted);
-    border: 1px solid var(--border);
-    padding: 1px 6px;
-    border-radius: 2px;
-    letter-spacing: 0.04em;
-  }
-
-  .footer {
-    padding: 7px 14px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-  }
-
-  .footer-status {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--muted);
-  }
-
-  .footer-status span { color: var(--text); }
-
-  .btn-refresh {
-    background: none; border: none; color: var(--muted);
-    font-family: var(--mono); font-size: 10px; cursor: pointer;
-    padding: 2px 0; transition: color 0.15s; letter-spacing: 0.04em;
-  }
-
-  .btn-refresh:hover { color: var(--accent); }
-
-  .empty {
-    display: flex; align-items: center; justify-content: center;
-    height: 100%; color: var(--muted); font-family: var(--mono); font-size: 11px;
-  }
-
-  .toast {
-    position: fixed; bottom: 36px; left: 50%;
-    transform: translateX(-50%) translateY(8px);
-    background: var(--surface); border: 1px solid var(--border);
-    color: var(--text); font-family: var(--mono); font-size: 10px;
-    padding: 6px 14px; border-radius: 2px; opacity: 0;
-    transition: all 0.2s; pointer-events: none; white-space: nowrap; z-index: 100;
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  .toast.success { border-color: var(--success); color: var(--success); }
-  .toast.error { border-color: var(--danger); color: var(--danger); }
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <span class="header-title">FORGE</span>
-  <button class="btn-icon" onclick="checkUpdates()">check updates</button>
+<!-- ══ MODE 1: TOOLBAR ══ -->
+<div id="toolbar">
+  <button id="expand-btn" title="Manage templates" onclick="openManage()">››</button>
+  <div class="divider-h"></div>
+  <div id="tpl-btn-container">
+    <div id="no-templates">No<br>tpls</div>
+  </div>
 </div>
 
-<div class="filterbar">
-  <button class="filter-btn active" onclick="setFilter('all', this)">all</button>
-  <button class="filter-btn" onclick="setFilter('installed', this)">installed</button>
-  <button class="filter-btn" onclick="setFilter('available', this)">available</button>
-  <button class="filter-btn" onclick="setFilter('update', this)">updates</button>
+<!-- ══ MODE 2: MANAGE OVERLAY ══ -->
+<div id="manage-overlay">
+  <div id="mg-header">
+    <span id="mg-title">Templates</span>
+    <button id="mg-close-btn" onclick="closeManage()">‹‹</button>
+  </div>
+  <div class="mg-divider"></div>
+  <div id="mg-tpl-list"></div>
+  <div class="mg-divider"></div>
+  <div id="mg-editor">
+    <div class="field-row">
+      <input type="text" id="mg-name-input"  placeholder="Template name…"/>
+      <input type="text" id="mg-label-input" maxlength="2" placeholder="1"
+             title="Button label (1–2 chars)"/>
+    </div>
+    <div id="mg-colour-row"></div>
+    <textarea id="mg-folders-input"
+      placeholder="01_FOOTAGE&#10;02_AUDIO&#10;/SFX&#10;/MUSIC&#10;//STEMS&#10;03_GRAPHICS"></textarea>
+    <span class="mg-hint">no prefix = bin · / = child · // = grandchild</span>
+  </div>
+  <div id="mg-actions">
+    <button class="act-btn"         onclick="mgNewTemplate()">+ New</button>
+    <button class="act-btn primary" onclick="mgSaveTemplate()">Save</button>
+  </div>
 </div>
 
-<div class="searchbar">
-  <input class="search-input" type="text" id="searchInput" placeholder="search plugins..." oninput="onSearch(this.value)" />
-</div>
-
-<div class="plugin-list" id="pluginList"></div>
-
-<div class="footer">
-  <span class="footer-status">
-    <span id="installedCount">0</span> installed &nbsp;·&nbsp; <span id="totalCount">0</span> total
-  </span>
-  <button class="btn-refresh" onclick="loadPlugins()">↻ refresh</button>
-</div>
-
-<div class="toast" id="toast"></div>
+<div id="status-flash"></div>
 
 <script>
-  // ── CEP Node bridge ──────────────────────────────────────────────
-  let installer = null;
-  try {
-    const cepNode = window.cep_node || (typeof require !== 'undefined' ? { require } : null);
-    if (cepNode) {
-      installer = cepNode.require('./js/install.js');
+(function(){
+'use strict';
+
+var PALETTE=[
+  '#e05252','#e07c52','#e0c052','#7ec852',
+  '#52c8a0','#52a8e0','#7052e0','#b852e0',
+  '#e052a8','#888888'
+];
+
+/* ── DEBUG ── */
+function log(){}
+function toggleDebug(){}
+
+/* ── STATUS ── */
+var _sf=document.getElementById('status-flash'),_sfT=null;
+function flash(msg,type){
+  _sf.textContent=msg;
+  _sf.className='show'+(type?' '+type:'');
+  clearTimeout(_sfT);
+  _sfT=setTimeout(function(){_sf.className='';},2500);
+}
+
+/* ── CEP ── */
+var cs=null,fs_n=null,path_n=null,TEMPLATES_FILE=null;
+try{
+  cs=new CSInterface();
+  try{var env=cs.getHostEnvironment();}
+  catch(e){}
+  try{
+    var extRoot=cs.getSystemPath(SystemPath.EXTENSION);
+    extRoot=decodeURIComponent(extRoot)
+      .replace(/^file:\/\/\//,'').replace(/^file:\/\//,'').replace(/\//g,'\\');
+    
+    if(typeof cep_node!=='undefined'){
+      fs_n=cep_node.require('fs');
+      path_n=cep_node.require('path');
+      TEMPLATES_FILE=path_n.join(extRoot,'templates.json');
+      
+    } else { }
+  }catch(e){}
+}catch(e){flash('Not in Premiere','err');}
+
+/* ════════════════════════════════
+   SUBFOLDER PARSER
+   Converts shorthand syntax to flat
+   path array that host.jsx expects.
+
+   Input lines:
+     01_FOOTAGE         → "01_FOOTAGE"
+     02_AUDIO           → "02_AUDIO"
+     /SFX               → "02_AUDIO/SFX"
+     /MUSIC             → "02_AUDIO/MUSIC"
+     //STEMS            → "02_AUDIO/MUSIC/STEMS"
+     03_GRAPHICS        → "03_GRAPHICS"
+
+   Algorithm:
+   - Count leading '/' = depth (0 = root)
+   - Maintain a stack of the current
+     ancestor at each depth level
+   - Build full path = stack[0..depth-1] + name
+   ════════════════════════════════ */
+function parseFolders(raw){
+  var lines=raw.split('\n');
+  var paths=[];
+  /* ancestors[d] = name of the last bin seen at depth d */
+  var ancestors=[];
+
+  lines.forEach(function(line){
+    var stripped=line.replace(/\r/,'');
+    if(!stripped.trim()) return; /* skip blank */
+
+    /* count leading slashes = depth */
+    var depth=0;
+    while(depth<stripped.length && stripped[depth]==='/') depth++;
+    var name=stripped.slice(depth).trim();
+    if(!name) return;
+
+    if(depth===0){
+      /* root-level bin */
+      ancestors=[name];
+      paths.push(name);
+    } else {
+      /* child: build path from ancestors up to depth-1, then name */
+      /* trim ancestors stack to depth so we don't reference stale parents */
+      ancestors.length=depth; /* truncate any deeper entries */
+      ancestors[depth]=name;
+      var fullPath=ancestors.slice(0,depth).join('/')+'/'+name;
+      paths.push(fullPath);
     }
-  } catch(e) {
-    console.warn('Running outside CEP — install.js not loaded:', e);
+  });
+
+  return paths;
+}
+
+/* ── SHARED STATE ── */
+var templates=[];
+
+function loadTemplates(){
+  if(!fs_n||!TEMPLATES_FILE){renderButtons();return;}
+  try{
+    if(fs_n.existsSync(TEMPLATES_FILE)){
+      templates=JSON.parse(fs_n.readFileSync(TEMPLATES_FILE,'utf8'));
+      
+    } else {templates=[];}
+  }catch(e){templates=[];}
+  renderButtons();
+}
+
+function persistTemplates(){
+  if(!fs_n||!TEMPLATES_FILE) return;
+  try{
+    fs_n.writeFileSync(TEMPLATES_FILE,JSON.stringify(templates,null,2),'utf8');
+    
+  }catch(e){}
+}
+
+/* ════════════════════════════════
+   MODE 1 — TOOLBAR
+   ════════════════════════════════ */
+function renderButtons(){
+  var c=document.getElementById('tpl-btn-container');
+  c.innerHTML='';
+  if(!templates.length){
+    var h=document.createElement('div');
+    h.id='no-templates';h.innerHTML='No<br>tpls';c.appendChild(h);return;
   }
+  templates.forEach(function(t,i){
+    var color=t.color||PALETTE[i%PALETTE.length];
+    var label=(t.label!==undefined&&t.label!=='')?t.label:String(i+1);
+    var btn=document.createElement('button');
+    btn.className='tpl-btn';
+    btn.style.background=color;
+    btn.textContent=label;
+    btn.setAttribute('data-name',t.name);
+    btn.addEventListener('click',function(){runTemplate(i);});
+    c.appendChild(btn);
+  });
+  
+}
 
-  // ── Registry ─────────────────────────────────────────────────────
-  const REGISTRY_URL = 'https://raw.githubusercontent.com/Oxy720/plugins/main/registry.json';
+function runTemplate(i){
+  var t=templates[i];
+  if(!t){return;}
+  if(!cs){flash('CEP unavailable','err');return;}
+  
 
-  const mockPlugins = [
-    {
-      id: 'fetchflow',
-      name: 'FetchFlow',
-      shortDesc: 'YouTube downloader panel',
-      fullDesc: 'FetchFlow lets you download YouTube videos and audio directly inside Premiere Pro. Set download folder routing automatically relative to your project file, manage a queue, and optionally auto-import downloads into your project bins.',
-      features: ['Resolution capping', 'MP3 / audio-only mode', 'Auto-import into Premiere bins', 'Mode A/B folder routing', 'Download queue'],
-      tags: ['youtube', 'download', 'audio', 'import'],
-      version: '1.2.0',
-      repoPath: 'plugins/fetchflow'
-    },
-    {
-      id: 'batch-leveler',
-      name: 'Batch Leveler',
-      shortDesc: 'Dialogue gain correction via FFmpeg',
-      fullDesc: 'Analyzes selected dialogue clips using FFmpeg scoped to their in/out points, calculates the required gain correction, and applies it automatically. Also stamps a Dynamics preset for consistent loudness across your timeline.',
-      features: ['FFmpeg-based loudness analysis', 'Auto gain correction via setAudioGain()', 'Dynamics preset stamping', 'Batch process multiple clips'],
-      tags: ['audio', 'gain', 'loudness', 'ffmpeg', 'dialogue'],
-      version: '1.0.3',
-      repoPath: 'plugins/batch-leveler'
-    },
-    {
-      id: 'autocut',
-      name: 'AutoCut',
-      shortDesc: 'Silence detection and cut tool',
-      fullDesc: 'Detects silence in selected clips and automatically cuts or ripple-deletes silent sections. Configurable threshold and minimum silence duration. Great for speeding up interview and podcast editing.',
-      features: ['Configurable silence threshold', 'Ripple delete silent gaps', 'Preview before cutting', 'Works on multiple clips'],
-      tags: ['cut', 'silence', 'ripple', 'interview', 'podcast', 'auto'],
-      version: '0.9.1',
-      repoPath: 'plugins/autocut'
-    },
-    {
-      id: 'subtitle-gen',
-      name: 'SubtitleGen',
-      shortDesc: 'Auto subtitle generator',
-      fullDesc: 'Generates subtitles from your timeline audio using a local Whisper model. Outputs as Premiere captions or SRT file. No internet connection required after initial model download.',
-      features: ['Local Whisper model', 'Exports as SRT or Premiere captions', 'Language detection', 'Word-level timestamps'],
-      tags: ['subtitles', 'captions', 'whisper', 'srt', 'transcription'],
-      version: '1.1.0',
-      repoPath: 'plugins/subtitle-gen'
-    },
-  ];
+  cs.evalScript('getProjectFolder()',function(result){
+    
+    if(!result||result==='NO_PROJECT'){flash('No project open','err');return;}
+    if(result.indexOf('ERROR:')===0){flash('ExtendScript error','err');return;}
 
-  // ── State ─────────────────────────────────────────────────────────
-  let plugins = [];
-  let currentFilter = 'all';
-  let searchQuery = '';
-  let openId = null;
+    /* use parser to expand /subfolder syntax */
+    var paths=parseFolders(t.folders);
+    
 
-  // ── Status helpers ────────────────────────────────────────────────
-  function getInstalledVersion(id) {
-    if (installer) return installer.getInstalledVersion(id);
-    return null;
-  }
-
-  function isInstalled(id) {
-    if (installer) return installer.isInstalled(id);
-    // fallback for dev: check localStorage flag
-    return localStorage.getItem('installed_' + id) === 'true';
-  }
-
-  function getStatus(p) {
-    if (!isInstalled(p.id)) return 'none';
-    const iv = getInstalledVersion(p.id);
-    if (iv && iv !== p.version) return 'update';
-    return 'installed';
-  }
-
-  // ── Filter + Search ───────────────────────────────────────────────
-  function matchesSearch(p, q) {
-    if (!q) return true;
-    const lower = q.toLowerCase();
-    return (
-      p.name.toLowerCase().includes(lower) ||
-      p.shortDesc.toLowerCase().includes(lower) ||
-      (p.tags || []).some(t => t.toLowerCase().includes(lower))
-    );
-  }
-
-  function getFiltered() {
-    return plugins.filter(p => {
-      const status = getStatus(p);
-      let passFilter = true;
-      if (currentFilter === 'installed') passFilter = status === 'installed';
-      else if (currentFilter === 'available') passFilter = status === 'none';
-      else if (currentFilter === 'update') passFilter = status === 'update';
-      return passFilter && matchesSearch(p, searchQuery);
+    var script='createBins('+JSON.stringify(JSON.stringify(paths))+')';
+    cs.evalScript(script,function(res){
+      
+      if(res==='OK'){flash('✓ '+t.name,'ok');}
+      else          {flash('Error','err');}
     });
+  });
+}
+
+/* ════════════════════════════════
+   MODE 2 — MANAGE OVERLAY
+   ════════════════════════════════ */
+var mgEditingIndex=-1;
+var mgSelectedColor=PALETTE[0];
+
+function openManage(){
+  mgEditingIndex=-1;
+  mgBuildColourPicker();
+  mgRenderList();
+  mgClearEditor();
+  document.getElementById('manage-overlay').classList.add('open');
+}
+function closeManage(){
+  document.getElementById('manage-overlay').classList.remove('open');
+}
+
+function mgBuildColourPicker(){
+  var row=document.getElementById('mg-colour-row');
+  row.innerHTML='';
+  PALETTE.forEach(function(c){
+    var s=document.createElement('div');
+    s.className='colour-swatch'+(c===mgSelectedColor?' active':'');
+    s.style.background=c;s.title=c;
+    s.addEventListener('click',function(){
+      mgSelectedColor=c;
+      row.querySelectorAll('.colour-swatch').forEach(function(sw){
+        sw.classList.toggle('active',sw.title===c);
+      });
+    });
+    row.appendChild(s);
+  });
+}
+
+function mgRenderList(){
+  var list=document.getElementById('mg-tpl-list');
+  if(!templates.length){
+    list.innerHTML='<div class="mg-hint" style="padding:4px 2px">No templates yet.</div>';return;
   }
+  list.innerHTML=templates.map(function(t,i){
+    var color=t.color||PALETTE[i%PALETTE.length];
+    var sel=mgEditingIndex===i?' selected':'';
+    return '<div class="tmpl-item'+sel+'" onclick="mgSelectTpl('+i+')">'
+      +'<div class="tmpl-swatch" style="background:'+color+'"></div>'
+      +'<span class="tmpl-item-name">'+esc(t.name)+'</span>'
+      +'<button class="tmpl-item-del" onclick="event.stopPropagation();mgDeleteTpl('+i+')">×</button>'
+      +'</div>';
+  }).join('');
+}
 
-  // ── Render ────────────────────────────────────────────────────────
-  function renderPlugins() {
-    const list = document.getElementById('pluginList');
-    const filtered = getFiltered();
+function mgSelectTpl(i){
+  mgEditingIndex=i;
+  var t=templates[i];
+  document.getElementById('mg-name-input').value   =t.name;
+  document.getElementById('mg-label-input').value  =t.label!==undefined?t.label:String(i+1);
+  document.getElementById('mg-folders-input').value=t.folders;
+  mgSelectedColor=t.color||PALETTE[i%PALETTE.length];
+  mgBuildColourPicker();mgRenderList();
+}
 
-    if (filtered.length === 0) {
-      list.innerHTML = '<div class="empty">nothing here</div>';
-      updateCounts();
-      return;
-    }
+function mgClearEditor(){
+  mgEditingIndex=-1;
+  document.getElementById('mg-name-input').value   ='';
+  document.getElementById('mg-label-input').value  ='';
+  document.getElementById('mg-folders-input').value='';
+  mgSelectedColor=PALETTE[templates.length%PALETTE.length];
+  mgBuildColourPicker();
+}
 
-    list.innerHTML = filtered.map(p => {
-      const status = getStatus(p);
-      let btnClass = 'install', btnLabel = 'install';
-      if (status === 'installed') { btnClass = 'installed'; btnLabel = 'installed'; }
-      else if (status === 'update') { btnClass = 'update'; btnLabel = 'update'; }
+function mgNewTemplate(){mgClearEditor();mgRenderList();document.getElementById('mg-name-input').focus();}
 
-      const btnOnclick = (status === 'installed') ? '' : `onclick="event.stopPropagation(); handleAction('${p.id}')"`;
-      const isOpen = openId === p.id;
+function mgSaveTemplate(){
+  var name   =document.getElementById('mg-name-input').value.trim();
+  var label  =document.getElementById('mg-label-input').value.trim();
+  var folders=document.getElementById('mg-folders-input').value.trim();
+  if(!name||!folders){flash('Name & folders required','err');return;}
 
-      const featuresHtml = p.features.map(f => `<div class="feature-item">${f}</div>`).join('');
-      const tagsHtml = (p.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+  /* preview-parse so user sees errors early */
+  var preview=parseFolders(folders);
+  
 
-      return `
-        <div class="plugin-item ${isOpen ? 'open' : ''}" id="item-${p.id}">
-          <div class="plugin-row" onclick="toggleDropdown('${p.id}')">
-            <div class="status-dot ${status}"></div>
-            <div class="plugin-info">
-              <div class="plugin-name">${p.name}</div>
-              <div class="plugin-desc">${p.shortDesc}</div>
-            </div>
-            <div class="plugin-version">v${p.version}</div>
-            <button class="btn-action ${btnClass}" ${btnOnclick} id="btn-${p.id}">${btnLabel}</button>
-            <span class="chevron">›</span>
-          </div>
-          <div class="plugin-dropdown">
-            <div class="dropdown-inner">
-              <div class="dropdown-full-desc">${p.fullDesc}</div>
-              <div class="features-label">Features</div>
-              <div class="features-list">${featuresHtml}</div>
-              ${tagsHtml ? `<div class="tags-row">${tagsHtml}</div>` : ''}
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    updateCounts();
+  var entry={name:name,folders:folders,color:mgSelectedColor,label:label};
+  if(mgEditingIndex>=0&&mgEditingIndex<templates.length){
+    templates[mgEditingIndex]=entry;
+  } else {
+    templates.push(entry);mgEditingIndex=templates.length-1;
   }
+  persistTemplates();renderButtons();mgRenderList();
+  flash('Saved','ok');
+}
 
-  function updateCounts() {
-    document.getElementById('installedCount').textContent = plugins.filter(p => isInstalled(p.id)).length;
-    document.getElementById('totalCount').textContent = plugins.length;
-  }
+function mgDeleteTpl(i){
+  var name=templates[i]?templates[i].name:i;
+  templates.splice(i,1);
+  if(mgEditingIndex===i) mgClearEditor();
+  else if(mgEditingIndex>i) mgEditingIndex--;
+  persistTemplates();renderButtons();mgRenderList();
+  
+}
 
-  function toggleDropdown(id) {
-    openId = (openId === id) ? null : id;
-    renderPlugins();
-  }
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-  // ── Install / Update ──────────────────────────────────────────────
-  async function handleAction(id) {
-    const plugin = plugins.find(p => p.id === id);
-    if (!plugin) return;
+/* ── EXPOSE ── */
+window.openManage=openManage;window.closeManage=closeManage;
 
-    const btn = document.getElementById(`btn-${id}`);
-    btn.className = 'btn-action installing';
-    btn.textContent = '···';
-    btn.onclick = null;
+window.mgNewTemplate=mgNewTemplate;window.mgSaveTemplate=mgSaveTemplate;
+window.mgSelectTpl=mgSelectTpl;window.mgDeleteTpl=mgDeleteTpl;
 
-    try {
-      if (installer) {
-        await installer.installPlugin(plugin, (msg) => {
-          btn.title = msg;
-        });
-      } else {
-        // dev fallback
-        await new Promise(r => setTimeout(r, 1800));
-        localStorage.setItem('installed_' + id, 'true');
-      }
-      renderPlugins();
-      showToast(`${plugin.name} installed — restart Premiere`, 'success');
-    } catch (err) {
-      renderPlugins();
-      showToast(`failed to install ${plugin.name}`, 'error');
-      console.error(err);
-    }
-  }
+/* ── BOOT ── */
+loadTemplates();
 
-  // ── Load from registry ────────────────────────────────────────────
-  async function loadPlugins() {
-    try {
-      const res = await fetch(REGISTRY_URL);
-      if (!res.ok) throw new Error('registry fetch failed');
-      plugins = await res.json();
-    } catch(e) {
-      plugins = mockPlugins;
-    }
-    openId = null;
-    renderPlugins();
-  }
 
-  function checkUpdates() {
-    loadPlugins();
-    showToast('checking for updates···');
-  }
 
-  // ── Filter / Search events ────────────────────────────────────────
-  function setFilter(filter, el) {
-    currentFilter = filter;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    el.classList.add('active');
-    renderPlugins();
-  }
-
-  function onSearch(val) {
-    searchQuery = val.trim();
-    renderPlugins();
-  }
-
-  // ── Toast ─────────────────────────────────────────────────────────
-  function showToast(msg, type = '') {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'toast show' + (type ? ' ' + type : '');
-    setTimeout(() => t.className = 'toast', 2500);
-  }
-
-  loadPlugins();
+}());
 </script>
 </body>
 </html>
