@@ -1,11 +1,17 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="com.forge.pluginmanager" ExtensionBundleVersion="1.0.0" ExtensionBundleName="FORGE">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<ExtensionManifest Version="7.0"
+  ExtensionBundleId="com.mold.plugin"
+  ExtensionBundleVersion="1.0.0"
+  ExtensionBundleName="MOLD">
+
   <ExtensionList>
-    <Extension Id="com.forge.pluginmanager.panel" Version="1.0.0"/>
+    <Extension Id="com.mold.plugin.toolbar" Version="1.0.0"/>
+    <Extension Id="com.mold.plugin.manage"  Version="1.0.0"/>
   </ExtensionList>
+
   <ExecutionEnvironment>
     <HostList>
-      <Host Name="PPRO" Version="[24.0,99.9]"/>
+      <Host Name="PPRO" Version="[13.0,99.9]"/>
     </HostList>
     <LocaleList>
       <Locale Code="All"/>
@@ -14,14 +20,19 @@
       <RequiredRuntime Name="CSXS" Version="11.0"/>
     </RequiredRuntimeList>
   </ExecutionEnvironment>
+
   <DispatchInfoList>
-    <Extension Id="com.forge.pluginmanager.panel">
+
+    <!-- ── TOOLBAR PANEL (main, docked narrow) ── -->
+    <Extension Id="com.mold.plugin.toolbar">
       <DispatchInfo>
         <Resources>
           <MainPath>./index.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
           <CEFCommandLine>
-            <Parameter>--allow-file-access-from-files</Parameter>
             <Parameter>--enable-nodejs</Parameter>
+            <Parameter>--allow-file-access-from-files</Parameter>
+            <Parameter>--allow-running-insecure-content</Parameter>
           </CEFCommandLine>
         </Resources>
         <Lifecycle>
@@ -29,19 +40,57 @@
         </Lifecycle>
         <UI>
           <Type>Panel</Type>
-          <Menu>FORGE</Menu>
+          <Menu>MOLD</Menu>
           <Geometry>
             <Size>
-              <Height>500</Height>
-              <Width>320</Width>
+              <Height>400</Height>
+              <Width>48</Width>
             </Size>
             <MinSize>
-              <Height>300</Height>
-              <Width>280</Width>
+              <Height>120</Height>
+              <Width>44</Width>
+            </MinSize>
+            <MaxSize>
+              <Height>2000</Height>
+              <Width>60</Width>
+            </MaxSize>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+
+    <!-- ── MANAGE WINDOW (modeless floating) ── -->
+    <Extension Id="com.mold.plugin.manage">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./manage.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--enable-nodejs</Parameter>
+            <Parameter>--allow-file-access-from-files</Parameter>
+            <Parameter>--allow-running-insecure-content</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>false</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>ModalDialog</Type>
+          <Menu>MOLD Templates</Menu>
+          <Geometry>
+            <Size>
+              <Height>420</Height>
+              <Width>300</Width>
+            </Size>
+            <MinSize>
+              <Height>360</Height>
+              <Width>260</Width>
             </MinSize>
           </Geometry>
         </UI>
       </DispatchInfo>
     </Extension>
+
   </DispatchInfoList>
+
 </ExtensionManifest>
